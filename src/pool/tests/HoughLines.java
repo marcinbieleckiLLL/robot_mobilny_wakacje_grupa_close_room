@@ -45,7 +45,7 @@ public class HoughLines {
 		Imgproc.Canny(gray, edges, lowThreshold, lowThreshold * ratio);
 		Mat lines = new Mat();
 		Imgproc.HoughLinesP(edges, lines, 1, Math.PI / 180, 50, 50, 10);
-
+		Imgcodecs.imwrite("transformationPhotos\\"+k+"transformated.jpg",edges);
 		for(int i = 0; i < lines.rows(); i++) {
 			double[] val = lines.get(i, 0);
 
@@ -78,9 +78,8 @@ public class HoughLines {
 		 if (goLeft >= goAhead && goLeft >= goRight && goLeft != 0) {
 			 RobotOrders.sendOrder("turnLeft");
 		 }
-		 if (!see && true)
+		 if (!see && seen)
 			 RobotOrders.sendOrder("nextTile");
-
 		 MatOfByte byteMat = new MatOfByte();
 		 Imgcodecs.imencode(".bmp", img, byteMat);
 		 IMAGE = new Image(new ByteArrayInputStream(byteMat.toArray()));

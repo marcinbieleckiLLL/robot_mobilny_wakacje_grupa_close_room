@@ -35,7 +35,7 @@ public class PerspectiveTransform {
 		target.add(new Point(0, img.rows()));
 //-------------------------------------------- PARAMETR PRZY ZMIANIE PERSPEKTYWY ( przeksztalcenie perspektywistyczne bierze trapez wzgledem ktorego przestawia i ma on ksztalt /\
 // i parametr perspectiveDistance mowi i tym ile pikseli jest oddalony gorny lewy rog trapezu od gornego lewego rogu prostokatnego obrazka (to sie nastroi do kamerki)
-		int perspectiveDistance=150;
+		int perspectiveDistance=200;
 //-------------------------------------------------------------------------------------------------------------
 		// lewy gorny rog
 		corners.add(new Point(perspectiveDistance,0));

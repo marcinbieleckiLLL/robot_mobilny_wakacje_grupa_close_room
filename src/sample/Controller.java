@@ -1,11 +1,10 @@
 package sample;
 
-import Canny.FaceDetection;
+import Canny.VideoStream;
 import Map.Map;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import javafx.scene.control.RadioButton;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.StackPane;
 import org.opencv.core.Core;
@@ -13,6 +12,7 @@ import org.opencv.videoio.VideoCapture;
 
 import java.io.IOException;
 
+import static Canny.RobotOrders.*;
 import static sample.Connection.listOfAtributtesOfConnection;
 
 public class Controller {
@@ -20,20 +20,31 @@ public class Controller {
     //MY_IP_ADRESS='192.168.1.155'
     //DEVICE_IP_ADRESS='192.168.1.2'
 
-    @FXML private TextField inputIP;
-    @FXML private Label labelIP;
-    @FXML private TextField orderArea;
-    @FXML private StackPane stackPane;
+    @FXML
+    private TextField inputIP;
+    @FXML
+    private Label labelIP;
+    @FXML
+    private TextField orderArea;
+    @FXML
+    private StackPane stackPane;
+    @FXML
+    private Label label;
     public static String ip;
     private Connection connection = new Connection();
     public static VideoCapture WEBSOURCE = null;
-    MapAction mapAction;
+    static public MapAction mapAction;
     public boolean isStreamRunning = false;
     public static XconYconList xconYcon = new XconYconList();
 
-    public enum Properties{
+    public static boolean upDir = true;
+    public static boolean downDir = false;
+    public static boolean rightDir = false;
+    public static boolean leftDir = false;
+
+    public enum Properties {
         TO_ROBOT("TO_ROBOT", 5000),
-        FROM_ROBOT("FROM_ROBOT", 5006);
+        FROM_ROBOT("FROM_ROBOT", 5000);
 
         String name;
         int port;
@@ -44,7 +55,8 @@ public class Controller {
         }
     }
 
-    @FXML public void initialize() {
+    @FXML
+    public void initialize() {
         inputIP.setTranslateY(-150);
         labelIP.setTranslateY(-150);
         stackPane.setTranslateX(57);
@@ -53,18 +65,21 @@ public class Controller {
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
     }
 
-    @FXML protected void handleSubmitButtonActionIp(ActionEvent event) throws IOException, InterruptedException {
+    @FXML
+    protected void handleSubmitButtonActionIp(ActionEvent event) throws IOException, InterruptedException {
         ip = inputIP.getText();
         new Thread(new Connection.runServer(Properties.FROM_ROBOT)).start();
-        new Thread(new Connection.runClient(Properties.TO_ROBOT)).start();
+        //new Thread(new Connection.runClient(Properties.TO_ROBOT)).start();
     }
 
-    @FXML protected void handleSubmitButtonActionOrder(ActionEvent event) throws IOException {
+    @FXML
+    protected void handleSubmitButtonActionOrder(ActionEvent event) throws IOException {
         String message = orderArea.getText();
         connection.sendMessage(message, listOfAtributtesOfConnection.getClientByName(Properties.TO_ROBOT.name).getOut());
     }
 
-    @FXML protected void handleSubmitButtonActionStream(ActionEvent event) throws IOException {
+    @FXML
+    protected void handleSubmitButtonActionStream(ActionEvent event) throws IOException {
         //WEBSOURCE = new VideoCapture("http://169.254.28.99:8080/video");
         //WEBSOURCE = new VideoCapture("http://169.254.28.99:8080/shot.jpg");
         //WEBSOURCE = new VideoCapture("http://169.254.28.99:8080/mjpg/mjpeg.cgi");
@@ -73,12 +88,12 @@ public class Controller {
         //WEBSOURCE = new VideoCapture("http://169.254.28.99:8080/stream.html");
         //WEBSOURCE = new VideoCapture("pi:raspberry@169.254.28.99");
         //WEBSOURCE = new VideoCapture("pi:raspberry@169.254.28.99/video.‌​cgi?.mjpg");
-        FaceDetection.DaemonThread myThread = new FaceDetection().new DaemonThread();
-        if(isStreamRunning){
+        VideoStream.DaemonThread myThread = new VideoStream().new DaemonThread();
+        if (isStreamRunning) {
             myThread.runnable = false;
             WEBSOURCE.release();
             isStreamRunning = false;
-        }else if(!isStreamRunning){
+        } else if (!isStreamRunning) {
             WEBSOURCE = new VideoCapture(0);
             Thread t = new Thread(myThread);
             t.setDaemon(true);
@@ -90,162 +105,51 @@ public class Controller {
     }
 
     @FXML
-    private RadioButton leftButtonDir;
-    @FXML
-    private RadioButton rightButtonDir;
-    @FXML
-    private RadioButton upButtonDir;
-    @FXML
-    private RadioButton downButtonDir;
-    @FXML
-    private Label label;
-    @FXML
     void goButtonClicked(ActionEvent event) {
-        mapAction.addOneAction("go", checkWhatButtonIsSelected());
-        xconYcon.add(Map.getxCon(), Map.getyCon());
-
-        // sprawdzanie czy punkt jest na mapie i czy nie jest sciana
-        if(upButtonDir.isSelected()
-                && Map.getyCon() -2>=0
-                && !Map.getGrid()[Map.getxCon()][Map.getyCon() -1].isWall )
-            Map.setyCon(Map.getyCon()-1);
-        if(downButtonDir.isSelected()
-                && Map.getyCon() +2<Map.getyTiles()
-                && !Map.getGrid()[Map.getxCon()][Map.getyCon() +1].isWall)
-            Map.setyCon(Map.getyCon()+1);
-        if(leftButtonDir.isSelected()
-                && Map.getxCon()-2>=0
-                && !Map.getGrid()[Map.getxCon()-1][Map.getyCon() ].isWall)
-            Map.setxCon(Map.getxCon()-1);
-        if(rightButtonDir.isSelected()
-                && Map.getxCon()+2<Map.getxTiles()
-                && !Map.getGrid()[Map.getxCon()+1][Map.getyCon() ].isWall)
-            Map.setxCon(Map.getxCon()+1);
-        //otwieranie nowego kafla
-        Map.getGrid()[Map.getxCon()][Map.getyCon() ].open();
+        nextTile();
     }
-    //-------------------------------------------------------------Robienie sciany--------------------------------------------
-    public void straightButtonSelected(ActionEvent actionEvent) {
-        mapAction.addOneAction("straight", checkWhatButtonIsSelected());
-        xconYcon.add(Map.getxCon(), Map.getyCon());
 
-        if(upButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()-1].makeWall();
-        }
-        if(downButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()+1].makeWall();
-        }
-        if(leftButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()-1][Map.getyCon()].makeWall();
-        }
-        if(rightButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()+1][Map.getyCon()].makeWall();
-        }
+    public void straightButtonSelected(ActionEvent actionEvent) {
+        frontWallDetected();
     }
 
     public void leftButtonSelected(ActionEvent actionEvent) {
-        mapAction.addOneAction("left", checkWhatButtonIsSelected());
-        xconYcon.add(Map.getxCon(), Map.getyCon());
-
-        if(upButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()-1][Map.getyCon()].makeWall();
-        }
-        if(downButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()+1][Map.getyCon()].makeWall();
-        }
-        if(leftButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()+1].makeWall();
-        }
-        if(rightButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()-1].makeWall();
-        }
+        leftWallDetected();
     }
 
     public void rightButtonSelected(ActionEvent actionEvent) {
-        mapAction.addOneAction("right", checkWhatButtonIsSelected());
-        xconYcon.add(Map.getxCon(), Map.getyCon());
-
-        if(upButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()+1][Map.getyCon()].makeWall();
-        }
-        if(downButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()-1][Map.getyCon()].makeWall();
-        }
-        if(leftButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()-1].makeWall();
-        }
-        if(rightButtonDir.isSelected()){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()+1].makeWall();
-        }
+        rightWallDetected();
     }
-//----------------------------------------------------------------------------------------------------------------------
 
-    // obrot robota w prawo lub lewo o 90 stopni.
     public void rotateLeftButtonSelected(ActionEvent actionEvent) {
-        xconYcon.add(Map.getxCon(), Map.getyCon());
-            if (upButtonDir.isSelected()) {
-                leftButtonDir.setSelected(true);
-                label.setText("Left");
-                mapAction.addOneAction(null, "leftButtonDir");
-            } else if (leftButtonDir.isSelected()) {
-                downButtonDir.setSelected(true);
-                label.setText("Down");
-                mapAction.addOneAction(null, "downButtonDir");
-            } else if (downButtonDir.isSelected()) {
-                rightButtonDir.setSelected(true);
-                label.setText("Right");
-                mapAction.addOneAction(null, "rightButtonDir");
-            } else if (rightButtonDir.isSelected()) {
-                upButtonDir.setSelected(true);
-                label.setText("Up");
-                mapAction.addOneAction(null, "upButtonDir");
-            }
-
+        obrotLewo90();
     }
 
     public void rotateRightButtonSelected(ActionEvent actionEvent) {
-        xconYcon.add(Map.getxCon(), Map.getyCon());
-            if (upButtonDir.isSelected()) {
-                rightButtonDir.setSelected(true);
-                label.setText("Right");
-                mapAction.addOneAction(null, "rightButtonDir");
-            } else if (rightButtonDir.isSelected()) {
-                downButtonDir.setSelected(true);
-                label.setText("Down");
-                mapAction.addOneAction(null, "downButtonDir");
-            } else if (downButtonDir.isSelected()) {
-                leftButtonDir.setSelected(true);
-                label.setText("Left");
-                mapAction.addOneAction(null, "leftButtonDir");
-            } else if (leftButtonDir.isSelected()) {
-                upButtonDir.setSelected(true);
-                label.setText("Up");
-                mapAction.addOneAction(null, "upButtonDir");
-            }
-
+        obrotPrawo90();
     }
 
-    public void doGoButton(String button){
-       // System.out.println("xcon: " + Map.xCon + "ycon: " + Map.yCon);
+    public void doGoButton(String button) {
+        // System.out.println("xcon: " + Map.xCon + "ycon: " + Map.yCon);
         //System.out.println("xcon1: " + xconYcon.getXcon() + "ycon1: " + xconYcon.getYcon());
-        if("upButtonDir".equals(button)
-                && Map.getyCon() -2>=0
-                && !Map.getGrid()[Map.getxCon()][Map.getyCon() -1].isWall )
-            Map.setyCon(Map.getyCon()-1);
-        if("downButtonDir".equals(button)
-                && Map.getyCon() +2<Map.getyTiles()
-                && !Map.getGrid()[Map.getxCon()][Map.getyCon() +1].isWall)
-            Map.setyCon(Map.getyCon()+1);
-        if("leftButtonDir".equals(button)
-                && Map.getxCon()-2>=0
-                && !Map.getGrid()[Map.getxCon()-1][Map.getyCon() ].isWall)
-            Map.setxCon(Map.getxCon()-1);
-        if("rightButtonDir".equals(button)
-                && Map.getxCon()+2<Map.getxTiles()
-                && !Map.getGrid()[Map.getxCon()+1][Map.getyCon() ].isWall)
-            Map.setxCon(Map.getxCon()+1);
+        if ("upButtonDir".equals(button)
+                && Map.getyCon() - 2 >= 0
+                && !Map.getGrid()[Map.getxCon()][Map.getyCon() - 1].isWall)
+            Map.setyCon(Map.getyCon() - 1);
+        if ("downButtonDir".equals(button)
+                && Map.getyCon() + 2 < Map.getyTiles()
+                && !Map.getGrid()[Map.getxCon()][Map.getyCon() + 1].isWall)
+            Map.setyCon(Map.getyCon() + 1);
+        if ("leftButtonDir".equals(button)
+                && Map.getxCon() - 2 >= 0
+                && !Map.getGrid()[Map.getxCon() - 1][Map.getyCon()].isWall)
+            Map.setxCon(Map.getxCon() - 1);
+        if ("rightButtonDir".equals(button)
+                && Map.getxCon() + 2 < Map.getxTiles()
+                && !Map.getGrid()[Map.getxCon() + 1][Map.getyCon()].isWall)
+            Map.setxCon(Map.getxCon() + 1);
         //otwieranie nowego kafla
-        Map.getGrid()[Map.getxCon()][Map.getyCon() ].open();
+        Map.getGrid()[Map.getxCon()][Map.getyCon()].open();
     }
 
     public void doStraightButton(String button) {
@@ -263,44 +167,44 @@ public class Controller {
         }
     }
 
-    public void doLeftButton(String button){
-        if("upButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()-1][Map.getyCon()].makeWall();
+    public void doLeftButton(String button) {
+        if ("upButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon() - 1][Map.getyCon()].makeWall();
         }
-        if("downButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()+1][Map.getyCon()].makeWall();
+        if ("downButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon() + 1][Map.getyCon()].makeWall();
         }
-        if("leftButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()+1].makeWall();
+        if ("leftButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon()][Map.getyCon() + 1].makeWall();
         }
-        if("rightButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()-1].makeWall();
-        }
-    }
-
-    public void doRightButton(String button){
-        if("upButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()+1][Map.getyCon()].makeWall();
-        }
-        if("downButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()-1][Map.getyCon()].makeWall();
-        }
-        if("leftButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()-1].makeWall();
-        }
-        if("rightButtonDir".equals(button)){
-            Map.getGrid()[Map.getxCon()][Map.getyCon()+1].makeWall();
+        if ("rightButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon()][Map.getyCon() - 1].makeWall();
         }
     }
 
-    private String checkWhatButtonIsSelected(){
-        if(upButtonDir.isSelected())
+    public void doRightButton(String button) {
+        if ("upButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon() + 1][Map.getyCon()].makeWall();
+        }
+        if ("downButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon() - 1][Map.getyCon()].makeWall();
+        }
+        if ("leftButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon()][Map.getyCon() - 1].makeWall();
+        }
+        if ("rightButtonDir".equals(button)) {
+            Map.getGrid()[Map.getxCon()][Map.getyCon() + 1].makeWall();
+        }
+    }
+
+    public static String checkWhatButtonIsSelected() {
+        if (upDir == true)
             return "upButtonDir";
-        else if(downButtonDir.isSelected())
+        else if (downDir == true)
             return "downButtonDir";
-        else if (rightButtonDir.isSelected())
+        else if (rightDir == true)
             return "rightButtonDir";
-        else if (leftButtonDir.isSelected())
+        else if (leftDir == true)
             return "leftButtonDir";
         return null;
     }

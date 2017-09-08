@@ -1,5 +1,7 @@
 package sample;
 
+import Canny.RobotOrders;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -33,11 +35,14 @@ public class Connection {
     }
 
     public static void createServer(Controller.Properties properties) throws IOException {
+        System.out.print("1111");
         ServerSocket server = new ServerSocket(properties.port);
         Socket socket = server.accept();
         BufferedReader in = doConnectionMalformation(socket, properties);
         while(true) {
-            System.out.println(receivMessage(in));
+            String order = receivMessage(in);
+            System.out.println(order);
+            RobotOrders.sendOrder(order);
         }
     }
 

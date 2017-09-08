@@ -26,7 +26,7 @@ import static sample.Controller.WEBSOURCE;
  * @author patryk
  */
 
-public class FaceDetection extends javax.swing.JFrame {
+public class VideoStream extends javax.swing.JFrame {
 private javax.swing.JButton jButton1;
 private javax.swing.JButton jButton2;
 private javax.swing.JPanel jPanel1;
@@ -72,7 +72,7 @@ public class DaemonThread implements Runnable {
             }
         }
     }
-    public FaceDetection() {
+    public VideoStream() {
         initComponents();
     }
 
@@ -164,7 +164,7 @@ public class DaemonThread implements Runnable {
        System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new FaceDetection().setVisible(true);
+                new VideoStream().setVisible(true);
             }
         });
     }
